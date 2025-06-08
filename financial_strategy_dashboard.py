@@ -18,26 +18,27 @@ start_date = st.sidebar.date_input("Start Date", value=pd.to_datetime("2020-01-0
 end_date = st.sidebar.date_input("End Date", value=pd.to_datetime("today"))
 strategy = st.sidebar.selectbox("Select Strategy", ["Momentum (50D MA)", "Mean Reversion (RSI)"])
 
-# Download data
-data = yf.download(ticker, start=start_date, end=end_date)
-if data.empty:
-    st.error("No data found. Please check the ticker symbol and date range.")
+# Download data (use auto_adjust to avoid 'Adj Close' issues)
+data = yf.download(ticker, start=start_date, end=end_date, auto_adjust=True)
+
+if data.empty or 'Close' not in data.columns:
+    st.error("No valid data found. Please check the ticker symbol and date range.")
     st.stop()
 
-data['Return'] = data['Adj Close'].pct_change()
+data['Return'] = data['Close'].pct_change()
 
 # Strategy logic
 def apply_momentum_strategy(df):
     df = df.copy()
-    df['MA50'] = df['Adj Close'].rolling(window=50).mean()
+    df['MA50'] = df['Close'].rolling(window=50).mean()
     df['Signal'] = 0
-    df.loc[df['Adj Close'] > df['MA50'], 'Signal'] = 1
+    df.loc[df['Close'] > df['MA50'], 'Signal'] = 1
     df['Strategy Return'] = df['Signal'].shift(1) * df['Return']
     return df
 
 def apply_rsi_strategy(df, window=14):
     df = df.copy()
-    delta = df['Adj Close'].diff()
+    delta = df['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window).mean()
     rs = gain / loss
@@ -78,3 +79,4 @@ col1, col2, col3 = st.columns(3)
 col1.metric("Total Return", f"{total_return:.2%}")
 col2.metric("Annualized Volatility", f"{volatility:.2%}")
 col3.metric("Sharpe Ratio", f"{sharpe_ratio:.2f}")
+
