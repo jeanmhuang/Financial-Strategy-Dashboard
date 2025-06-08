@@ -16,4 +16,4 @@ A simple Streamlit app that lets you backtest two common trading strategies usin
 
 ```bash
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run financial_strategy_dashboard.py
